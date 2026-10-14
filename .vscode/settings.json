@@ -1,0 +1,7 @@
+{
+    "files.associations": {
+        "nrf52_regs.h": "c",
+        "serial.h": "c",
+        "cstdlib": "c"
+    }
+}
