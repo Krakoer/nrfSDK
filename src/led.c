@@ -5,9 +5,9 @@ void led_init(gpio_pin_t led){
 }
 
 void led_on(gpio_pin_t led){
-    gpio_output_high(led);
+    gpio_output_low(led);
 }
 
 void led_off(gpio_pin_t led){
-    gpio_output_low(led);
+    gpio_output_high(led);
 }

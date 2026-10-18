@@ -1,6 +1,7 @@
 #pragma once
 
 #include "gpio.h"
+#include <stdint.h>
 
 #define BAUD1200 0x0004F000 // 1200 baud (actual rate: 1205)
 #define BAUD2400 0x0009D000 // 2400 baud (actual rate: 2396)
@@ -27,3 +28,6 @@ void serial_print(const char *str);
 void serial_println(const char *str);
 void serial_print_dec(unsigned long val);
 void serial_print_hex(unsigned long val);
+void serial_print_hex8(uint8_t vat);
+void serial_print_hex32(uint32_t vat);
+void serial_hex_dump(const uint8_t *buf, unsigned len);

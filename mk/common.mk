@@ -3,7 +3,7 @@ OBJCOPY = arm-none-eabi-objcopy
 NRFUTIL = nrfutil
 
 CFLAGS  = -mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16 \
-          -O2 -ffreestanding -nostdlib -Wall \
+          -O2 -ffreestanding -fno-builtin -nostdlib -Wall -Wextra \
 		  -Werror=implicit-function-declaration -Werror=implicit-int \
           -I$(SDK)/include
 LDFLAGS = -T $(SDK)/boot/nrf52840.ld -nostdlib -Wl,--gc-sections

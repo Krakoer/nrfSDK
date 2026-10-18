@@ -7,5 +7,5 @@ void enable_hfxo(){
 }
 
 int hfxo_enabled(){
-    return CLOCK_HFCLKSTAT & 1;
+    return CLOCK_HFCLKSTAT & (1<<16 | 1);
 }

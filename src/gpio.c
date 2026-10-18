@@ -14,13 +14,13 @@ void gpio_enable_pullup(gpio_pin_t p){
 }
 
 void gpio_output_high(gpio_pin_t p){
-    GPIO_REG(p.base, GPIO_OUTCLR_OFFSET) = 1UL << p.pin;
-}
-
-void gpio_output_low(gpio_pin_t p){
     GPIO_REG(p.base, GPIO_OUTSET_OFFSET) = 1UL << p.pin;
 }
 
+void gpio_output_low(gpio_pin_t p){
+    GPIO_REG(p.base, GPIO_OUTCLR_OFFSET) = 1UL << p.pin;
+}
+
 int gpio_read(gpio_pin_t p){
-    return ((GPIO_REG(p.base, GPIO_IN_OFFSET) & (1UL << p.pin)) == 0);
+    return ((GPIO_REG(p.base, GPIO_IN_OFFSET) |= (1UL << p.pin)) == 0);
 }
