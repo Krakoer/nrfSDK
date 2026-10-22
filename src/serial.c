@@ -53,7 +53,7 @@ void serial_print_dec(unsigned long v)
 void serial_hex_dump(const uint8_t *buf, unsigned len){
     char line[HEXDUMP_LINE] = {0};
 
-    for(int off = 0; off < len; off+=HEXDUMP_COL) {
+    for(unsigned int off = 0; off < len; off+=HEXDUMP_COL) {
         // Number of byte to print in this line
         int n = len-off;
         if(n > HEXDUMP_COL) n = HEXDUMP_COL;
