@@ -10,6 +10,7 @@
 #define RADIO_TASKS_DISABLE (*(volatile unsigned long *)(RADIO_BASE + 0x010))
 #define RADIO_EVENTS_READY (*(volatile unsigned long *)(RADIO_BASE + 0x100))
 #define RADIO_EVENTS_END (*(volatile unsigned long *)(RADIO_BASE + 0x10C))
+#define RADIO_EVENTS_DISABLE (*(volatile unsigned long *)(RADIO_BASE + 0x110))
 #define RADIO_CRCSTATUS (*(volatile unsigned long *)(RADIO_BASE + 0x400))
 #define RADIO_PACKET_PTR (*(volatile unsigned long *)(RADIO_BASE + 0x504))
 #define RADIO_FREQUENCY (*(volatile unsigned long *)(RADIO_BASE + 0x508))
@@ -103,4 +104,5 @@ typedef struct {
 void radio_configure(const radio_config_t *cfg);
 void wait_for_radio_ready();
 void radio_start_rx();
+void radio_disable();
 void radio_rx(radio_packet_t *pckt);

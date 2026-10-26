@@ -1,6 +1,5 @@
 #include "radio.h"
 #include <stdint.h>
-#include "serial.h"
 
 #define RADIO_BUF_SIZE 257
 static volatile uint8_t radio_buf[RADIO_BUF_SIZE] = {0};
@@ -43,7 +42,10 @@ void wait_for_radio_ready(){
 
 void radio_start_rx(){
     RADIO_PACKET_PTR = (long unsigned int)&radio_buf;
+    RADIO_EVENTS_READY = 0;
     RADIO_TASKS_RXEN = 1;
+    while(RADIO_EVENTS_READY == 0) { }
+    RADIO_EVENTS_READY = 0;
 }
 
 void radio_rx(radio_packet_t *pckt){
@@ -60,4 +62,11 @@ void radio_rx(radio_packet_t *pckt){
     for(unsigned int i = 0; i < l; i++){
         pckt->payload[i] = radio_buf[i];
     }
+}
+
+void radio_disable(){
+    RADIO_EVENTS_DISABLE = 0;
+    RADIO_TASKS_DISABLE = 1;
+    while(RADIO_EVENTS_DISABLE == 0) { }
+    RADIO_EVENTS_DISABLE = 0;
 }
