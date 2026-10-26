@@ -2,9 +2,10 @@
 
 #include <stdint.h>
 
-// typedef enum{
-
-// } ble_parsing_error_t;
+typedef enum{
+	BLE_ADV_OK,
+	BLE_ADV_INVALID_LEN
+} ble_parsing_error_t;
 
 typedef enum{
 	ADV_IND = 0,
@@ -23,7 +24,6 @@ typedef struct{
     ble_adv_type_t adv_type;
     uint8_t tx_add;
     uint8_t rx_add;
-    uint8_t adv_len;
 } ble_adv_header_t;
 
 typedef struct{
@@ -33,4 +33,4 @@ typedef struct{
 	unsigned adv_len;
 } ble_adv_packet_t;
 
-void parse_adv_ble_packet(const uint8_t *data, unsigned len, ble_adv_packet_t *ble);
+ble_parsing_error_t parse_adv_ble_packet(const uint8_t *data, unsigned len, ble_adv_packet_t *ble);
