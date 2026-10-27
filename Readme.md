@@ -15,7 +15,7 @@ Install `arm-none-eabi-gcc`, `arm-none-eabi-objcopy` using your fav package mana
 
 # AI use
 
-As this project is only intened for me to learn how to program my NRF dongle, and as you can tell by the (very) bad code quality, I did not use AI to generate a single LoC in this project.
+As this project is only intended for me to learn C and how to program my NRF dongle, and as you can tell by the (very) bad code quality, I did not use AI to generate a single LoC in this project.
 
 # References
 [1] https://www.sstic.org/2021/presentation/injectable__injection_de_trafic_malveillant_dans_une_connexion_bluetooth_low_energy/
