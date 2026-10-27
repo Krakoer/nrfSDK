@@ -9,8 +9,10 @@
 #define RADIO_TASKS_STOP (*(volatile unsigned long *)(RADIO_BASE + 0x00C))
 #define RADIO_TASKS_DISABLE (*(volatile unsigned long *)(RADIO_BASE + 0x010))
 #define RADIO_EVENTS_READY (*(volatile unsigned long *)(RADIO_BASE + 0x100))
+#define RADIO_EVENTS_ADDRESS (*(volatile unsigned long *)(RADIO_BASE + 0x104))
 #define RADIO_EVENTS_END (*(volatile unsigned long *)(RADIO_BASE + 0x10C))
 #define RADIO_EVENTS_DISABLE (*(volatile unsigned long *)(RADIO_BASE + 0x110))
+#define RADIO_SHORTS (*(volatile unsigned long *)(RADIO_BASE + 0x200))
 #define RADIO_CRCSTATUS (*(volatile unsigned long *)(RADIO_BASE + 0x400))
 #define RADIO_PACKET_PTR (*(volatile unsigned long *)(RADIO_BASE + 0x504))
 #define RADIO_FREQUENCY (*(volatile unsigned long *)(RADIO_BASE + 0x508))
@@ -34,6 +36,26 @@
 #define RADIO_CRCINIT (*(volatile unsigned long *)(RADIO_BASE + 0x53C))
 #define RADIO_STATE (*(volatile unsigned long *)(RADIO_BASE + 0x550))
 #define RADIO_DATAWHITEIV (*(volatile unsigned long *)(RADIO_BASE + 0x554))
+
+#define RADIO_READY_START 0
+#define RADIO_END_DISABLE 1
+#define RADIO_DISABLED_TXEN 2
+#define RADIO_DISABLED_RXEN 3
+#define RADIO_ADDRESS_RSSISTART 4
+#define RADIO_END_START 5
+#define RADIO_ADDRESS_BCSTART 6
+#define RADIO_DISABLED_RSSISTOP 8
+#define RADIO_RXREADY_CCASTART 11
+#define RADIO_CCAIDLE_TXEN 12
+#define RADIO_CCABUSY_DISABLE 13
+#define RADIO_FRAMESTART_BCSTART 14
+#define RADIO_READY_EDSTART 15
+#define RADIO_EDEND_DISABLE 16
+#define RADIO_CCAIDLE_STOP 17
+#define RADIO_TXREADY_START 18
+#define RADIO_RXREADY_START 19
+#define RADIO_PHYEND_DISABLE 20
+#define RADIO_PHYEND_START 21
 
 #define CNF0_LFLEN_POS 0UL
 #define CNF0_S0LEN_POS 8UL
@@ -105,4 +127,8 @@ void radio_configure(const radio_config_t *cfg);
 void wait_for_radio_ready();
 void radio_start_rx();
 void radio_disable();
-void radio_rx(radio_packet_t *pckt);
+void radio_rx_start();
+int radio_rx_poll();
+void radio_rx_fetch(radio_packet_t *pckt);
+void radio_enable_short(int short_num);
+void radio_disable_short(int short_num);
