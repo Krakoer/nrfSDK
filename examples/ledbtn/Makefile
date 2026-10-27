@@ -1,5 +1,5 @@
 SRCS = main.c
-TARGET = blink
+TARGET = ledbtn
 SDK = ../../
 
 include $(SDK)/mk/common.mk
