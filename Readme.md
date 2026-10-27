@@ -18,7 +18,7 @@ Install `arm-none-eabi-gcc`, `arm-none-eabi-objcopy` using your fav package mana
 As this project is only intended for me to learn C and how to program my NRF dongle, and as you can tell by the (very) bad code quality, I did not use AI to generate a single LoC in this project.
 
 # References
-[1] https://www.sstic.org/2021/presentation/injectable__injection_de_trafic_malveillant_dans_une_connexion_bluetooth_low_energy/
-[2] https://ieeexplore.ieee.org/document/9505071
-[3] https://github.com/whad-team/butterfly
-[4] https://github.com/whad-team/whad-client/issues/257
+[1] https://www.sstic.org/2021/presentation/injectable__injection_de_trafic_malveillant_dans_une_connexion_bluetooth_low_energy/  
+[2] https://ieeexplore.ieee.org/document/9505071  
+[3] https://github.com/whad-team/butterfly  
+[4] https://github.com/whad-team/whad-client/issues/257  
