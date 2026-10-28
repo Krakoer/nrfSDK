@@ -5,6 +5,7 @@ extern unsigned long _sidata, _sdata, _edata, _sbss, _ebss, _estack;
 
 void Reset_Handler(void);
 void Default_Handler(void);
+void RADIO_IRQHandler(void) __attribute__((weak, alias("Default_Handler")));
 int main(void);
 
 __attribute__((section(".isr_vector")))
@@ -14,7 +15,10 @@ void (* const vector_table[])(void) = {
     Default_Handler, Default_Handler, Default_Handler, Default_Handler,
     Default_Handler, 0, 0, 0, 0,
     Default_Handler, Default_Handler, 0,
-    Default_Handler, Default_Handler,
+    Default_Handler, Default_Handler, 
+    // Start of IRQs
+    Default_Handler, // Timer
+    RADIO_IRQHandler,
 };
 
 void Reset_Handler(void)

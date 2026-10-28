@@ -1,10 +1,19 @@
 #include "radio.h"
+#include "nvic.h"
 #include <stdint.h>
 
 #define RADIO_BUF_SIZE 257
 static volatile uint8_t radio_buf1[RADIO_BUF_SIZE] = {0};
 static volatile uint8_t radio_buf2[RADIO_BUF_SIZE] = {0};
 static uint8_t buf_num = 1;
+static void (*volatile irq_handler)(void);
+
+void RADIO_IRQHandler(void){
+    if(irq_handler){
+        RADIO_EVENTS_END = 0;
+        irq_handler();
+    }
+}
 
 static inline unsigned long radio_pcnf0_encode(radio_pcnf0_t cfg)
 {
@@ -110,4 +119,10 @@ void radio_enable_short(int short_num){
 
 void radio_disable_short(int short_num){
     RADIO_SHORTS &= ~(1UL<<short_num);
+}
+
+void radio_enable_irq(int int_n, radio_irq_cb_t handler){
+    RADIO_INTENSET = (1UL<<int_n);
+    NVIC_ISER0 = (1UL<<1); // RADIO ID is 1
+    irq_handler = handler;
 }

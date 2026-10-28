@@ -6,7 +6,7 @@ ble_parsing_error_t parse_adv_ble_packet(const uint8_t *data, unsigned len, ble_
     if(len < 11){
         return BLE_ADV_INVALID_LEN;
     }
-    if(data[1]+2 != len) {
+    if(data[1]+2UL != len) {
         return BLE_ADV_INVALID_LEN;
     }
 

@@ -13,6 +13,7 @@
 #define RADIO_EVENTS_END (*(volatile unsigned long *)(RADIO_BASE + 0x10C))
 #define RADIO_EVENTS_DISABLE (*(volatile unsigned long *)(RADIO_BASE + 0x110))
 #define RADIO_SHORTS (*(volatile unsigned long *)(RADIO_BASE + 0x200))
+#define RADIO_INTENSET (*(volatile unsigned long *)(RADIO_BASE + 0x304))
 #define RADIO_CRCSTATUS (*(volatile unsigned long *)(RADIO_BASE + 0x400))
 #define RADIO_PACKET_PTR (*(volatile unsigned long *)(RADIO_BASE + 0x504))
 #define RADIO_FREQUENCY (*(volatile unsigned long *)(RADIO_BASE + 0x508))
@@ -56,6 +57,30 @@
 #define RADIO_RXREADY_START 19
 #define RADIO_PHYEND_DISABLE 20
 #define RADIO_PHYEND_START 21
+
+#define RADIO_READY_INT 0
+#define RADIO_ADDRESS_INT 1
+#define RADIO_PAYLOAD_INT 2
+#define RADIO_END_INT 3
+#define RADIO_DISABLED_INT 4
+#define RADIO_DEVMATCH_INT 5
+#define RADIO_DEVMISS_INT 6
+#define RADIO_RSSIEND_INT 7
+#define RADIO_BCMATCH_INT 10
+#define RADIO_CRCOK_INT 12
+#define RADIO_CRCERROR_INT 13
+#define RADIO_FRAMESTART_INT 14
+#define RADIO_EDEND_INT 15
+#define RADIO_EDSTOPPED_INT 16
+#define RADIO_CCAIDLE_INT 17
+#define RADIO_CCABUSY_INT 18
+#define RADIO_CCASTOPPED_INT 19
+#define RADIO_RATEBOOST_INT 20
+#define RADIO_TXREADY_INT 21
+#define RADIO_RXREADY_INT 22
+#define RADIO_MHRMATCH_INT 23
+#define RADIO_SYNC_INT 26
+#define RADIO_PHYEND_INT 27
 
 #define CNF0_LFLEN_POS 0UL
 #define CNF0_S0LEN_POS 8UL
@@ -123,6 +148,8 @@ typedef struct {
     int crc_status;
 } radio_packet_t;
 
+typedef void (*radio_irq_cb_t)(void);
+
 void radio_configure(const radio_config_t *cfg);
 void wait_for_radio_ready();
 void radio_start_rx();
@@ -132,3 +159,4 @@ int radio_rx_poll();
 void radio_rx_fetch(radio_packet_t *pckt);
 void radio_enable_short(int short_num);
 void radio_disable_short(int short_num);
+void radio_enable_irq(int int_n, radio_irq_cb_t handler);

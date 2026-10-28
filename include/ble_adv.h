@@ -29,7 +29,7 @@ typedef struct{
 typedef struct{
     ble_adv_header_t header;
 	uint8_t addr[6];
-	uint8_t *adv_data;
+	const uint8_t *adv_data;
 	unsigned adv_len;
 } ble_adv_packet_t;
 
