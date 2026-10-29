@@ -1,17 +1,39 @@
 #include "radio.h"
 #include "nvic.h"
+#include "hal.h"
 #include <stdint.h>
 
 #define RADIO_BUF_SIZE 257
 static volatile uint8_t radio_buf1[RADIO_BUF_SIZE] = {0};
 static volatile uint8_t radio_buf2[RADIO_BUF_SIZE] = {0};
+static radio_packet_t* radio_slot;
+static unsigned slot_status = 0;
+static unsigned dropped = 0;
+static unsigned received = 0;
 static uint8_t buf_num = 1;
 static void (*volatile irq_handler)(void);
 
 void RADIO_IRQHandler(void){
-    if(irq_handler){
-        RADIO_EVENTS_END = 0;
-        irq_handler();
+    if(RADIO_EVENTS_END){
+        nrf_event_clear(&RADIO_EVENTS_END);
+        received ++;
+        // Check that slot has been read
+        if(slot_status == 0){
+            radio_slot->len = radio_buf2[1] + 2; // 2 because S0 + length
+            radio_slot->crc_status = RADIO_CRCSTATUS;
+            unsigned int l = radio_slot->len;
+            if(l > radio_slot->buf_len) l = radio_slot->buf_len;
+            for(unsigned int i = 0; i < l; i++){
+                radio_slot->payload[i] = radio_buf2[i];
+            }
+            slot_status = 1;
+        }
+        else{
+            dropped++;
+        }
+        if(irq_handler){
+            irq_handler();
+        }
     }
 }
 
@@ -125,4 +147,24 @@ void radio_enable_irq(int int_n, radio_irq_cb_t handler){
     RADIO_INTENSET = (1UL<<int_n);
     NVIC_ISER0 = (1UL<<1); // RADIO ID is 1
     irq_handler = handler;
+}
+
+void radio_set_rx_slot(radio_packet_t *slot){
+    radio_slot = slot;
+}
+
+int radio_packet_ready(){
+    return slot_status == 1;
+}
+
+void radio_slot_available(){
+    slot_status = 0;
+}
+
+unsigned radio_get_dropped_count(){
+    return dropped;
+}
+
+unsigned radio_get_received_count(){
+    return received;
 }

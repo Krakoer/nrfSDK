@@ -160,3 +160,8 @@ void radio_rx_fetch(radio_packet_t *pckt);
 void radio_enable_short(int short_num);
 void radio_disable_short(int short_num);
 void radio_enable_irq(int int_n, radio_irq_cb_t handler);
+void radio_set_rx_slot(radio_packet_t *slot);
+int radio_packet_ready();
+void radio_slot_available();
+unsigned radio_get_dropped_count();
+unsigned radio_get_received_count();
