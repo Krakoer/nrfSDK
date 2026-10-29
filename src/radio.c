@@ -4,7 +4,9 @@
 #include <stdint.h>
 
 #define RADIO_BUF_SIZE 257
-static volatile uint8_t radio_buf[RADIO_BUF_SIZE] = {0};
+static volatile uint8_t radio_buf1[RADIO_BUF_SIZE] = {0};
+static volatile uint8_t radio_buf2[RADIO_BUF_SIZE] = {0};
+static unsigned int bufnum = 1;
 
 static radio_packet_t* radio_slot;
 static unsigned slot_status = 0;
@@ -14,26 +16,47 @@ static unsigned received = 0;
 static void (*volatile irq_handler)(void);
 
 void RADIO_IRQHandler(void){
+    if(RADIO_EVENTS_ADDRESS){
+        nrf_event_clear(&RADIO_EVENTS_ADDRESS);
+        if(bufnum == 1){
+            bufnum = 2;
+            RADIO_PACKET_PTR = (long unsigned int)radio_buf2;
+        } else{
+            bufnum = 1;
+            RADIO_PACKET_PTR = (long unsigned int)radio_buf1;
+        }
+    }
     if(RADIO_EVENTS_END){
         nrf_event_clear(&RADIO_EVENTS_END);
         received ++;
         // Check that slot has been read
         if(slot_status == 0){
-            radio_slot->len = radio_buf[1] + 2; // 2 because S0 + length
+            if(bufnum == 1){
+                radio_slot->len = radio_buf2[1] + 2; // 2 because S0 + length
+            }
+            else{
+                radio_slot->len = radio_buf1[1] + 2; // 2 because S0 + length
+            }
             radio_slot->crc_status = RADIO_CRCSTATUS;
             unsigned int l = radio_slot->len;
             if(l > radio_slot->buf_len) l = radio_slot->buf_len;
-            for(unsigned int i = 0; i < l; i++){
-                radio_slot->payload[i] = radio_buf[i];
+            if(bufnum == 1){
+                for(unsigned int i = 0; i < l; i++){
+                    radio_slot->payload[i] = radio_buf2[i];
+                }
+            }else{
+                for(unsigned int i = 0; i < l; i++){
+                    radio_slot->payload[i] = radio_buf1[i];
+                } 
             }
             slot_status = 1;
         }
         else{
             dropped++;
         }
-        if(irq_handler){
-            irq_handler();
-        }
+        // if(irq_handler){
+        //     irq_handler();
+        // }
     }
 }
 
@@ -69,7 +92,7 @@ void radio_configure(const radio_config_t *cfg){
 }
 
 void radio_enable_rx(){
-    RADIO_PACKET_PTR = (long unsigned int)&radio_buf;
+    RADIO_PACKET_PTR = (long unsigned int)&radio_buf1;
 
     RADIO_EVENTS_READY = 0;
     RADIO_TASKS_RXEN = 1;
@@ -92,9 +115,12 @@ void radio_disable_short(int short_num){
     RADIO_SHORTS &= ~(1UL<<short_num);
 }
 
-void radio_enable_irq(int int_n, radio_irq_cb_t handler){
+void radio_enable_irq(int int_n){
     RADIO_INTENSET = (1UL<<int_n);
     NVIC_ISER0 = (1UL<<1); // RADIO ID is 1
+}
+
+void radio_register_irq_handler(radio_irq_cb_t handler){
     irq_handler = handler;
 }
 
