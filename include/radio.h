@@ -151,12 +151,8 @@ typedef struct {
 typedef void (*radio_irq_cb_t)(void);
 
 void radio_configure(const radio_config_t *cfg);
-void wait_for_radio_ready();
-void radio_start_rx();
+void radio_enable_rx();
 void radio_disable();
-void radio_rx_start();
-int radio_rx_poll();
-void radio_rx_fetch(radio_packet_t *pckt);
 void radio_enable_short(int short_num);
 void radio_disable_short(int short_num);
 void radio_enable_irq(int int_n, radio_irq_cb_t handler);
