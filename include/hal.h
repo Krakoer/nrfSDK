@@ -8,3 +8,10 @@ static inline void nrf_event_clear(volatile unsigned long *evt){
     uint32_t dum = *evt;
     (void)dum;
 }
+
+static inline void __set_PRIMASK(uint32_t priMask)
+{
+  __asm__ volatile ("MSR primask, %0" : : "r" (priMask) : "memory");
+}
+
+#define __WFI()                             __asm__ volatile ("wfi")
