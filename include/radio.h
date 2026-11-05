@@ -12,6 +12,7 @@
 #define RADIO_EVENTS_ADDRESS (*(volatile unsigned long *)(RADIO_BASE + 0x104))
 #define RADIO_EVENTS_END (*(volatile unsigned long *)(RADIO_BASE + 0x10C))
 #define RADIO_EVENTS_DISABLE (*(volatile unsigned long *)(RADIO_BASE + 0x110))
+#define RADIO_EVENTS_RXREADY (*(volatile unsigned long *)(RADIO_BASE + 0x158))
 #define RADIO_SHORTS (*(volatile unsigned long *)(RADIO_BASE + 0x200))
 #define RADIO_INTENSET (*(volatile unsigned long *)(RADIO_BASE + 0x304))
 #define RADIO_CRCSTATUS (*(volatile unsigned long *)(RADIO_BASE + 0x400))
