@@ -17,3 +17,5 @@ void ppi_set_channel_event_addr(int channel, void *event_addr);
 void ppi_set_channel_fork_addr(int channel, void *task_addr);
 void ppi_enable_channel(int channel);
 void ppi_clear_channel(int channel);
+int ppi_alloc_channel();
+void ppi_free_channel(int channel);
