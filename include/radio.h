@@ -140,6 +140,8 @@ typedef struct {
     unsigned crccnf;
     unsigned crcinit;
     unsigned crcpoly;
+    unsigned long timer_base; // Base addr of the timer instance used to measure packet timestamps (0 if no measurement)
+    int timer_cc; // CC of the timer instance used to measure packet timestamps
 } radio_config_t;
 
 typedef struct {
@@ -147,6 +149,7 @@ typedef struct {
     unsigned len;
     unsigned buf_len;
     int crc_status;
+    unsigned long timestamp_ticks;
 } radio_packet_t;
 
 typedef void (*radio_irq_cb_t)(void);

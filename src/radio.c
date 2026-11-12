@@ -1,6 +1,7 @@
 #include "radio.h"
 #include "nvic.h"
 #include "hal.h"
+#include "timer.h"
 #include <stdint.h>
 
 #define RADIO_BUF_SIZE 257
@@ -12,6 +13,9 @@ static radio_packet_t* radio_slot;
 static unsigned slot_status = 0;
 static unsigned dropped = 0;
 static unsigned received = 0;
+static unsigned long n = 0;
+static unsigned long timer_base = 0;
+static int timer_cc = 0;
 
 static void (*volatile irq_handler)(void);
 
@@ -31,6 +35,9 @@ void RADIO_IRQHandler(void){
         received ++;
         // Check that slot has been read
         if(slot_status == 0){
+            if(timer_base) radio_slot->timestamp_ticks = TIMER_REG(timer_base, TIMER_CC_OFFSET(timer_cc));
+            n++;
+
             if(bufnum == 1){
                 radio_slot->len = radio_buf2[1] + 2; // 2 because S0 + length
             }
@@ -89,6 +96,8 @@ void radio_configure(const radio_config_t *cfg){
     RADIO_CRCCNF = cfg->crccnf;
     RADIO_CRCPOLY = cfg->crcpoly;
     RADIO_CRCINIT = cfg->crcinit;
+    timer_base = cfg->timer_base;
+    timer_cc = cfg->timer_cc;
 }
 
 void radio_enable_rx(){
