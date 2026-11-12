@@ -41,5 +41,7 @@ void timer_set_bitmode(unsigned long base, unsigned int bitmode);
 void timer_set_prescaler(unsigned long base, uint8_t prescaler);
 void timer_set_cc_value(unsigned long base, int cc_reg_num, unsigned long value);
 void timer_set_cmp_clear_short(unsigned long base, unsigned int cc_reg_num);
+void timer_set_cmp_stop_short(unsigned long base, unsigned int cc_reg_num);
 int timer_check_event_cmp(unsigned long base, unsigned int cc_reg_num);
 void timer_clear_event_cmp(unsigned long base, unsigned int cc_reg_num);
+void timer_capture(unsigned long base, unsigned int cc_reg_num);

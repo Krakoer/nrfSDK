@@ -43,10 +43,18 @@ void timer_set_cmp_clear_short(unsigned long base, unsigned int cc_reg_num){
     TIMER_REG(base, TIMER_SHORTS_OFFSET) |= (1UL << cc_reg_num);
 }
 
+void timer_set_cmp_stop_short(unsigned long base, unsigned int cc_reg_num){
+    TIMER_REG(base, TIMER_SHORTS_OFFSET) |= (1UL << (cc_reg_num+8));
+}
+
 int timer_check_event_cmp(unsigned long base, unsigned int cc_reg_num){
     return TIMER_REG(base, TIMER_EVENTS_COMPARE_OFFSET(cc_reg_num));
 }
 
 void timer_clear_event_cmp(unsigned long base, unsigned int cc_reg_num){
     TIMER_REG(base, TIMER_EVENTS_COMPARE_OFFSET(cc_reg_num)) = 0;
+}
+
+void timer_capture(unsigned long base, unsigned int cc_reg_num){
+    TIMER_REG(base, TIMER_TASKS_CAPTURE_OFFSET(cc_reg_num)) = 1;
 }
