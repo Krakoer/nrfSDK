@@ -34,3 +34,4 @@ typedef struct{
 } ble_adv_packet_t;
 
 ble_parsing_error_t parse_adv_ble_packet(const uint8_t *data, unsigned len, ble_adv_packet_t *ble);
+ble_parsing_error_t ble_adv_to_raw(uint8_t *data, unsigned len, ble_adv_packet_t *ble);

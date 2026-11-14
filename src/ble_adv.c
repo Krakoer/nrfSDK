@@ -58,3 +58,27 @@ ble_parsing_error_t parse_adv_ble_packet(const uint8_t *data, unsigned len, ble_
 
     return BLE_ADV_OK;
 }
+
+ble_parsing_error_t ble_adv_to_raw(uint8_t *data, unsigned len, ble_adv_packet_t *ble){
+    // Buffer length should be at least length of ADV data + 6 bytes of MAC address + 2 bytes of header.
+    if(len < ble->adv_len + 8) {
+        return BLE_ADV_INVALID_LEN;
+    }
+
+    data[0] |= ble->header.adv_type;
+    data[0] |= ble->header.rx_add << 7;
+    data[0] |= ble->header.tx_add << 6;
+    // Length is length of adv data + 6 bytes of addr
+    data[1] = ble->adv_len + 6;
+
+    for(int i = 0; i < 6; i++){
+        data[7-i] = ble->addr[i];
+    }
+
+    // Copy data
+    for(unsigned int i = 0; i < ble->adv_len; i++){
+        data[8+i] = ble->adv_data[i];
+    }
+
+    return BLE_ADV_OK;
+}
