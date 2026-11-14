@@ -92,6 +92,8 @@ void radio_configure(const radio_config_t *cfg){
     RADIO_PREFIX0 = cfg->prefix0;
     RADIO_DATAWHITEIV = cfg->datawhiteiv;
     RADIO_RXADDRESSES = cfg->rxaddr;
+    RADIO_TXADDRESS = cfg->txaddr;
+    RADIO_TXPOWER = cfg->txpower;
     RADIO_FREQUENCY = cfg->frequency;
     RADIO_CRCCNF = cfg->crccnf;
     RADIO_CRCPOLY = cfg->crcpoly;
@@ -101,12 +103,23 @@ void radio_configure(const radio_config_t *cfg){
 }
 
 void radio_enable_rx(){
-    RADIO_PACKET_PTR = (long unsigned int)&radio_buf1;
+    RADIO_PACKET_PTR = (long unsigned int)radio_buf1;
 
     RADIO_EVENTS_READY = 0;
     RADIO_TASKS_RXEN = 1;
     while(RADIO_EVENTS_READY == 0) { }
     RADIO_EVENTS_READY = 0;
+}
+
+void radio_enable_tx(){
+    RADIO_EVENTS_READY = 0;
+    RADIO_TASKS_TXEN = 1;
+    while(RADIO_EVENTS_READY == 0) { }
+    RADIO_EVENTS_READY = 0;
+}
+
+void radio_set_tx_buf(void *buf){
+    RADIO_PACKET_PTR = (long unsigned int)buf;
 }
 
 void radio_disable(){

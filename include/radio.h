@@ -18,6 +18,7 @@
 #define RADIO_CRCSTATUS (*(volatile unsigned long *)(RADIO_BASE + 0x400))
 #define RADIO_PACKET_PTR (*(volatile unsigned long *)(RADIO_BASE + 0x504))
 #define RADIO_FREQUENCY (*(volatile unsigned long *)(RADIO_BASE + 0x508))
+#define RADIO_TXPOWER (*(volatile unsigned long *)(RADIO_BASE + 0x50C))
 #define RADIO_MODE (*(volatile unsigned long *)(RADIO_BASE + 0x510))
 // Disabled  0  RADIO is in the Disabled state
 // RxRu      1  RADIO is in the RXRU state
@@ -32,6 +33,7 @@
 #define RADIO_PCNF1 (*(volatile unsigned long *)(RADIO_BASE + 0x518))
 #define RADIO_BASE0 (*(volatile unsigned long *)(RADIO_BASE + 0x51C))
 #define RADIO_PREFIX0 (*(volatile unsigned long *)(RADIO_BASE + 0x524))
+#define RADIO_TXADDRESS (*(volatile unsigned long *)(RADIO_BASE + 0x52C))
 #define RADIO_RXADDRESSES (*(volatile unsigned long *)(RADIO_BASE + 0x530))
 #define RADIO_CRCCNF (*(volatile unsigned long *)(RADIO_BASE + 0x534))
 #define RADIO_CRCPOLY (*(volatile unsigned long *)(RADIO_BASE + 0x538))
@@ -97,6 +99,21 @@
 #define CNF1_ENDIAN_POS 24UL
 #define CNF1_WHITEEN_POS 25UL
 
+#define RADIO_TXPWR_POS8DBM 0x8  // +8 dBm
+#define RADIO_TXPWR_POS7DBM 0x7  // +7 dBm
+#define RADIO_TXPWR_POS6DBM 0x6  // +6 dBm
+#define RADIO_TXPWR_POS5DBM 0x5  // +5 dBm
+#define RADIO_TXPWR_POS4DBM 0x4  // +4 dBm
+#define RADIO_TXPWR_POS3DBM 0x3  // +3 dBm
+#define RADIO_TXPWR_POS2DBM 0x2  // +2 dBm
+#define RADIO_TXPWR_0DBM 0x0  // 0 dBm
+#define RADIO_TXPWR_NEG4DBM 0xFC //  -4 dBm
+#define RADIO_TXPWR_NEG8DBM 0xF8 //  -8 dBm
+#define RADIO_TXPWR_NEG12DBM 0xF4 //  -12 dBm
+#define RADIO_TXPWR_NEG16DBM 0xF0 //  -16 dBm
+#define RADIO_TXPWR_NEG20DBM 0xEC //  -20 dBm
+#define RADIO_TXPWR_NEG30DBM 0xE2 //  -40 dBm
+
 typedef enum {
     PLEN_8BITS = 0,
     PLEN_16BITS = 1,
@@ -135,11 +152,13 @@ typedef struct {
     unsigned base0;
     unsigned prefix0;
     unsigned datawhiteiv;
+    unsigned txaddr;
     unsigned rxaddr;
     unsigned frequency;
     unsigned crccnf;
     unsigned crcinit;
     unsigned crcpoly;
+    unsigned txpower;
     unsigned long timer_base; // Base addr of the timer instance used to measure packet timestamps (0 if no measurement)
     int timer_cc; // CC of the timer instance used to measure packet timestamps
 } radio_config_t;
@@ -156,12 +175,14 @@ typedef void (*radio_irq_cb_t)(void);
 
 void radio_configure(const radio_config_t *cfg);
 void radio_enable_rx();
+void radio_enable_tx();
 void radio_disable();
 void radio_enable_short(int short_num);
 void radio_disable_short(int short_num);
 void radio_enable_irq(int int_n);
 void radio_register_irq_handler(radio_irq_cb_t handler);
 void radio_set_rx_slot(radio_packet_t *slot);
+void radio_set_tx_buf(void *buf);
 int radio_packet_ready();
 void radio_slot_available();
 unsigned radio_get_dropped_count();
