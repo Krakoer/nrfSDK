@@ -45,3 +45,5 @@ void timer_set_cmp_stop_short(unsigned long base, unsigned int cc_reg_num);
 int timer_check_event_cmp(unsigned long base, unsigned int cc_reg_num);
 void timer_clear_event_cmp(unsigned long base, unsigned int cc_reg_num);
 void timer_capture(unsigned long base, unsigned int cc_reg_num);
+unsigned long timer_alloc();
+void timer_free(unsigned long timer);

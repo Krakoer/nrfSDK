@@ -1,5 +1,15 @@
 #include "timer.h"
 
+static uint32_t taken_timers = 0;
+
+static const unsigned long TIMERS[] = {
+    TIMER0_BASE,
+    TIMER1_BASE,
+    TIMER2_BASE,
+    TIMER3_BASE,
+    TIMER4_BASE,
+};
+
 void timer_start(unsigned long base){
     TIMER_REG(base, TIMER_TASKS_START_OFFSET) = 1;
 }
@@ -57,4 +67,28 @@ void timer_clear_event_cmp(unsigned long base, unsigned int cc_reg_num){
 
 void timer_capture(unsigned long base, unsigned int cc_reg_num){
     TIMER_REG(base, TIMER_TASKS_CAPTURE_OFFSET(cc_reg_num)) = 1;
+}
+
+unsigned long timer_alloc(){
+        // Allocate the first free channel
+    int i = 0;
+    while(i < 5 && ((taken_timers & (1<<i)) != 0)){
+        i++;
+    }
+    // If all timers are taken, return -1
+    if(i == 5){
+        return -1;
+    }
+    // Alloc and return
+    taken_timers |= (1<<i);
+    return TIMERS[i];
+}
+
+void timer_free(unsigned long timer){
+    for(int i = 0; i < 5; i++){
+        if(timer == TIMERS[i]){
+            taken_timers &= ~(1 << timer);
+            return;
+        }
+    }
 }
