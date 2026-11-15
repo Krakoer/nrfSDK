@@ -5,12 +5,15 @@
 #define USBD_TASKS_STARTEPIN_N(n)   (*(volatile unsigned long *)(USBD_BASE + 0x004 + 0x4UL*(n)))
 #define USBD_TASKS_STARTISOIN       (*(volatile unsigned long *)(USBD_BASE + 0x024))
 #define USBD_TASKS_STARTEPOUT_N(n)  (*(volatile unsigned long *)(USBD_BASE + 0x028 + 4UL*(n)))
+#define USBD_TASKS_EP0RCVOUT        (*(volatile unsigned long *)(USBD_BASE + 0x04C))
 #define USBD_TASKS_EP0STATUS        (*(volatile unsigned long *)(USBD_BASE + 0x050))
 #define USBD_TASKS_EP0STALL         (*(volatile unsigned long *)(USBD_BASE + 0x054))
 #define USBD_EVENTS_USBRESET        (*(volatile unsigned long *)(USBD_BASE + 0x100))
 #define USBD_EVENTS_EP0DATADONE     (*(volatile unsigned long *)(USBD_BASE + 0x128))
+#define USBD_EVENTS_ENDEPOUT_N(n)   (*(volatile unsigned long *)(USBD_BASE + 0x130 + 4UL*(n)))
 #define USBD_EVENTS_EP0SETUP        (*(volatile unsigned long *)(USBD_BASE + 0x15C))
 #define USBD_EVENTS_USBEVENT        (*(volatile unsigned long *)(USBD_BASE + 0x158))
+#define USBD_SHORTS                 (*(volatile unsigned long *)(USBD_BASE + 0x200))
 #define USBD_INTENSET               (*(volatile unsigned long *)(USBD_BASE + 0x304))
 #define USBD_EVENTCAUSE             (*(volatile unsigned long *)(USBD_BASE + 0x400))
 #define USBD_USBADDR                (*(volatile unsigned long *)(USBD_BASE + 0x470))
@@ -22,6 +25,7 @@
 #define USBD_WINDEXH                (*(volatile unsigned long *)(USBD_BASE + 0x494)) // SETUP data, byte 5, MSB of wIndex
 #define USBD_WLENGTHL               (*(volatile unsigned long *)(USBD_BASE + 0x498)) // SETUP data, byte 6, LSB of wLength
 #define USBD_WLENGTHH               (*(volatile unsigned long *)(USBD_BASE + 0x49C)) // SETUP data, byte 7, MSB of wLength
+#define USBD_SIZE_EPOUT_N(n)        (*(volatile unsigned long *)(USBD_BASE + 0x4A0 + 4UL*(n)))
 #define USBD_ENABLE                 (*(volatile unsigned long *)(USBD_BASE + 0x500))
 #define USBD_USBPULLUP              (*(volatile unsigned long *)(USBD_BASE + 0x504))
 #define USBD_EPINEN                 (*(volatile unsigned long *)(USBD_BASE + 0x510))
@@ -29,6 +33,9 @@
 #define USBD_EPIN_PTR_N(n)          (*(volatile unsigned long *)(USBD_BASE + 0x600 + 0x14UL*(n)))
 #define USBD_EPIN_MAXCNT_N(n)       (*(volatile unsigned long *)(USBD_BASE + 0x604 + 0x14UL*(n)))
 #define USBD_EPIN_AMOUNT_N(n)       (*(volatile unsigned long *)(USBD_BASE + 0x608 + 0x14UL*(n)))
+#define USBD_EPOUT_PTR_N(n)         (*(volatile unsigned long *)(USBD_BASE + 0x700 + 0x14UL*(n)))
+#define USBD_EPOUT_MAXCNT_N(n)      (*(volatile unsigned long *)(USBD_BASE + 0x704 + 0x14UL*(n)))
+#define USBD_EPOUT_AMOUNT_N(n)      (*(volatile unsigned long *)(USBD_BASE + 0x708 + 0x14UL*(n)))
 
 #define USBD_INT_USBRESET_MSK 1<<0
 #define USBD_INT_STARTED_MSK 1<<1

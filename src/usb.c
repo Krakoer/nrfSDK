@@ -117,6 +117,19 @@ static const char cfgDescriptor[] = {
 	0x00    // bInterval
 };
 
+static const char lineCoding[] = {
+    // Baudrate, little endian, 115200 baud (0x1c200)
+    0x00,
+    0xc2,
+    0x01,
+    0x00,
+    // Stop bit (1)
+    0x00,
+    // Parity type (None)
+    0x00,
+    // Data bits (8)
+    0x08,
+};
 
 static char usb_buffer[64] = { 0 };
 
@@ -140,11 +153,36 @@ static void usb_send_control_data(const char *data, int length) {
     USBD_TASKS_EP0STATUS = 1;
 }
 
+static int usb_read_control_data(char *outbuf, int buflen, int wLength){
+    uint32_t received_total = 0;
+    uint32_t rcv = 0;
+    USBD_EPOUT_PTR_N(0) = (unsigned long)usb_buffer;
+    USBD_EPOUT_MAXCNT_N(0) = MIN(buflen, wLength);
+    
+    USBD_TASKS_EP0RCVOUT = 1;
+    while(1) {
+        while(USBD_EVENTS_EP0DATADONE == 0) { }
+        USBD_EVENTS_EP0DATADONE = 0;
+        while(USBD_EVENTS_ENDEPOUT_N(0) == 0) { }
+        USBD_EVENTS_ENDEPOUT_N(0) = 0;
+        rcv = USBD_EPIN_AMOUNT_N(0);
+        for (uint32_t i = 0; i < rcv; i ++) {
+            *outbuf++ = usb_buffer[i];
+        }
+        received_total += rcv;
+        if(received_total == wLength || rcv < 0x40) {
+            break;
+        }
+    }
+    USBD_TASKS_EP0STATUS = 1;
+}
+
 void USBD_IRQHandler(void){
     uint8_t bmRequestType = 0;
     uint8_t bRequest = 0;
     uint32_t wLength = 0;
     uint32_t wValue = 0;
+    char serial_confbuf[7] = {0};
 
     if(USBD_EVENTS_EP0SETUP == 1) {
         USBD_EVENTS_EP0SETUP = 0;
@@ -169,6 +207,31 @@ void USBD_IRQHandler(void){
                     default:
                         USBD_TASKS_EP0STALL = 1;
                         break;
+                }
+                break;
+            // SET_LINE_CODING
+            case 0x20:
+                if(bmRequestType == 0x21){
+                    usb_read_control_data(serial_confbuf, 7, wLength);
+                }else{
+                    USBD_TASKS_EP0STALL = 1;
+                }
+                break;
+            // GET_LINE_CODING
+            case 0x21:
+                if(bmRequestType == 0xa1){
+                    // usb_send_control_data(lineCoding, MIN(wLength, sizeof(lineCoding)));
+                    usb_send_control_data(serial_confbuf, MIN(wLength, sizeof(serial_confbuf)));
+                }else{
+                    USBD_TASKS_EP0STALL = 1;
+                }
+                break;
+            // SET_CONTROL_LINE_STATE
+            case 0x22:
+                if(bmRequestType == 0x21){
+                    USBD_TASKS_EP0STATUS = 1;
+                }else{
+                    USBD_TASKS_EP0STALL = 1;
                 }
                 break;
             case USBD_STD_SET_ADDRESS:
@@ -229,4 +292,7 @@ void usb_init(){
     USBD_INTENSET = USBD_INT_EP0SETUP_MSK;
     USBD_INTENSET = USBD_INT_EP0DATADONE_MSK;
     NVIC_ISER1 |= (1UL<<7);
+
+    // Enable useful shorts
+    USBD_SHORTS |= (1<<1 | 1<<4); // EP0DATADONE_STARTEPOUT0 | ENDEPOUT0_EP0RCVOUT
 }
