@@ -6,6 +6,7 @@ extern unsigned long _sidata, _sdata, _edata, _sbss, _ebss, _estack;
 void Reset_Handler(void);
 void Default_Handler(void);
 void RADIO_IRQHandler(void) __attribute__((weak, alias("Default_Handler")));
+void USBD_IRQHandler(void) __attribute__((weak, alias("Default_Handler")));
 int main(void);
 
 __attribute__((section(".isr_vector")))
@@ -17,13 +18,51 @@ void (* const vector_table[])(void) = {
     Default_Handler, Default_Handler, 0,
     Default_Handler, Default_Handler, 
     // Start of IRQs
-    Default_Handler, // Timer
+    Default_Handler, // POWER
     RADIO_IRQHandler,
+    Default_Handler,
+    Default_Handler,
+    Default_Handler,
+    Default_Handler,
+    Default_Handler,
+    Default_Handler,
+    Default_Handler,
+    Default_Handler,
+    Default_Handler,
+    Default_Handler,
+    Default_Handler,
+    Default_Handler,
+    Default_Handler,
+    Default_Handler,
+    Default_Handler,
+    Default_Handler,
+    Default_Handler,
+    Default_Handler,
+    Default_Handler,
+    Default_Handler,
+    Default_Handler,
+    Default_Handler,
+    Default_Handler,
+    Default_Handler,
+    Default_Handler,
+    Default_Handler,
+    Default_Handler,
+    Default_Handler,
+    Default_Handler,
+    Default_Handler,
+    Default_Handler,
+    Default_Handler,
+    Default_Handler,
+    Default_Handler,
+    Default_Handler,
+    Default_Handler,
+    Default_Handler,
+    USBD_IRQHandler, // USBD
 };
 
 void Reset_Handler(void)
 {
-    SCB_VTOR = VECTOR_TABLE_ADDR;   /* repoint NVIC at our table, not the MBR's */
+    SCB_VTOR = VECTOR_TABLE_ADDR;   // repoint NVIC at our table
 
     unsigned long *src = &_sidata;
     unsigned long *dst = &_sdata;
