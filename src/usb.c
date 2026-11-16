@@ -133,66 +133,44 @@ static const char lineCoding[] = {
     0x08,
 };
 
+// Control-related
+usb_control_machine_t control_machine;
+static char usb_control_buffer[64] = { 0 };
+static char serial_confbuf[7] = {0};
+
+// Bulk IN
 static ring_buff_t usb_ring;
 static uint8_t usb_ring_buf[USB_RING_SIZE] = {0};
-
+/// A packet is being sent via Bulk IN endpoint
 static uint32_t op_pending = 0;
 static uint32_t sending_length = 0;
 
-static char serial_confbuf[7] = {0};
-static char usb_buffer[64] = { 0 };
+/// Is there any data waiting for DMA moves
+static int dma_busy = 0;
+
+// Misc
 static volatile int dtr_latch = 0;
 
-static void usb_send_control_data(const char *data, int length) {
-    uint32_t tosend = 0;
-    USBD_EPIN_PTR_N(0) = (unsigned long)usb_buffer;
+static void usb_send_control_data() {
+    USBD_EPIN_PTR_N(0) = (unsigned long)usb_control_buffer;
+    int sending = MIN(control_machine.remaining, 0x40);
+    USBD_EPIN_MAXCNT_N(0) = sending;
     
-    do {
-        tosend = MIN(length, 0x40);
-        length -= tosend;
-        USBD_EPIN_MAXCNT_N(0) = tosend;
+    // For sending data, stage it in a RAM buffer so easyDMA can access it.
+    for (uint32_t i = 0; i < sending; i ++) {
+        usb_control_buffer[i] = *control_machine.ptr++;
+    }
+    control_machine.remaining-=sending;
 
-        for (uint32_t i = 0; i < tosend; i ++) {
-            usb_buffer[i] = *data++;
-        }
-
-        USBD_TASKS_STARTEPIN_N(0) = 1;
-        while(USBD_EVENTS_EP0DATADONE == 0) { }
-        USBD_EVENTS_EP0DATADONE = 0;
-    } while(length);
-    USBD_TASKS_EP0STATUS = 1;
+    control_machine.ep0_busy = 1;
+    USBD_TASKS_STARTEPIN_N(0) = 1;
 }
 
-static uint32_t usb_read_control_data(char *outbuf, uint32_t buflen, uint32_t wLength){
-    uint32_t received_total = 0;
-    uint32_t rcv = 0;
-    USBD_EPOUT_PTR_N(0) = (unsigned long)usb_buffer;
-
-    // Enable useful shorts
-    USBD_SHORTS |= (1<<1 | 1<<4); // EP0DATADONE_STARTEPOUT0 | ENDEPOUT0_EP0RCVOUT
-    
+static void usb_read_control_data(){
+    USBD_EPOUT_PTR_N(0) = (unsigned long)control_machine.ptr;
+    USBD_EPOUT_MAXCNT_N(0) = MIN(control_machine.remaining, 0x40);
+    control_machine.out_armed = 1;
     USBD_TASKS_EP0RCVOUT = 1;
-    while(1) {
-        USBD_EPOUT_MAXCNT_N(0) = MIN(MIN(sizeof(usb_buffer), buflen-received_total), wLength-received_total);
-        while(USBD_EVENTS_EP0DATADONE == 0) { }
-        USBD_EVENTS_EP0DATADONE = 0;
-        while(USBD_EVENTS_ENDEPOUT_N(0) == 0) { }
-        USBD_EVENTS_ENDEPOUT_N(0) = 0;
-        rcv = USBD_EPOUT_AMOUNT_N(0);
-        for (uint32_t i = 0; i < rcv; i ++) {
-            *outbuf++ = usb_buffer[i];
-        }
-        received_total += rcv;
-        if(received_total == wLength || rcv < 0x40) {
-            break;
-        }
-    }
-    USBD_TASKS_EP0STATUS = 1;
-
-    // Disable the shorts
-    USBD_SHORTS &= ~(1<<1 | 1<<4); // EP0DATADONE_STARTEPOUT0 | ENDEPOUT0_EP0RCVOUT
-
-    return received_total;
 }
 
 void usb_write(const uint8_t *buf, int length){
@@ -203,7 +181,9 @@ void usb_write(const uint8_t *buf, int length){
     }
 }
 
-void usb_tx_start(){
+/// Peeks the usb ring buffer and starts trasnmitting in EPIN[1]
+/// returns 1 if it started a transmission
+int usb_tx_start() {
     uint32_t length = 0;
     void *data_ptr = 0;
     if(dtr_latch && !op_pending) {
@@ -216,31 +196,75 @@ void usb_tx_start(){
 
             USBD_TASKS_STARTEPIN_N(1) = 1;
             op_pending = 1;
+            return 1;
         }
+    }
+    return 0;
+}
+
+void dma_schedule(){
+    if(dma_busy){
+        return;
+    }
+    if(control_machine.state == CONTROL_DATA_IN && control_machine.remaining > 0 && !control_machine.ep0_busy){
+        usb_send_control_data();
+        dma_busy = 1;
+    } else if(control_machine.state == CONTROL_DATA_OUT){
+        if(control_machine.out_ready){
+            control_machine.out_ready = 0;
+            dma_busy = 1;
+            USBD_TASKS_STARTEPOUT_N(0) = 1;
+        }
+        else if(!control_machine.out_armed){
+            usb_read_control_data();
+        }
+    } else if(usb_tx_start()){
+        dma_busy = 1;
     }
 }
 
 void USBD_IRQHandler(void){
-    uint8_t bmRequestType = 0;
-    uint8_t bRequest = 0;
-    uint32_t wLength = 0;
-    uint32_t wValue = 0;
-
+    if(USBD_EVENTS_USBRESET){
+        USBD_EVENTS_USBRESET = 0;
+        dma_busy = 0;
+        op_pending = 0;
+        control_machine.ep0_busy = 0;
+        control_machine.out_armed = 0;
+        control_machine.out_ready = 0;
+        dtr_latch = 0;
+    }
+    
     if(USBD_EVENTS_EP0SETUP == 1) {
         USBD_EVENTS_EP0SETUP = 0;
+        // A SETUP should abort whatever is going on
+        control_machine.state = CONTROL_IDLE;
+        control_machine.ep0_busy = 0;
+        control_machine.out_armed = 0;
+        control_machine.out_ready = 0;
+    
+        uint8_t bmRequestType = 0;
+        uint8_t bRequest = 0;
+        uint32_t wLength = 0;
+        uint32_t wValue = 0;
+
         bmRequestType = USBD_BMREQUESTTYPE;
         bRequest = USBD_BREQUEST;
         wLength = USBD_WLENGTHL | (USBD_WLENGTHH << 8);
         wValue = USBD_WVALUEL | (USBD_WVALUEH << 8);
+
         switch(bRequest){
             case USBD_STD_GET_DESCRIPTOR:
                 switch (bmRequestType) {
                     case 0x80:
                         if(wValue == 0x100) {
-                            usb_send_control_data(devDescriptor, MIN(wLength, sizeof(devDescriptor)));                            
+                            control_machine.remaining = MIN(wLength, sizeof(devDescriptor));
+                            control_machine.ptr = devDescriptor;
+                            control_machine.state = CONTROL_DATA_IN;
                         }
                         else if(wValue == 0x200) {
-                            usb_send_control_data(cfgDescriptor, MIN(wLength, sizeof(cfgDescriptor)));                            
+                            control_machine.remaining = MIN(wLength, sizeof(cfgDescriptor));
+                            control_machine.ptr = cfgDescriptor;
+                            control_machine.state = CONTROL_DATA_IN;
                         }
                         else{
                             USBD_TASKS_EP0STALL = 1;
@@ -254,7 +278,9 @@ void USBD_IRQHandler(void){
             // SET_LINE_CODING
             case 0x20:
                 if(bmRequestType == 0x21){
-                    usb_read_control_data(serial_confbuf, 7, wLength);
+                    control_machine.remaining = MIN(wLength, 7);
+                    control_machine.ptr = serial_confbuf;
+                    control_machine.state = CONTROL_DATA_OUT;
                 }else{
                     USBD_TASKS_EP0STALL = 1;
                 }
@@ -262,8 +288,9 @@ void USBD_IRQHandler(void){
             // GET_LINE_CODING
             case 0x21:
                 if(bmRequestType == 0xa1){
-                    // usb_send_control_data(lineCoding, MIN(wLength, sizeof(lineCoding)));
-                    usb_send_control_data(serial_confbuf, MIN(wLength, sizeof(serial_confbuf)));
+                    control_machine.remaining = MIN(wLength, sizeof(serial_confbuf));
+                    control_machine.ptr = serial_confbuf;
+                    control_machine.state = CONTROL_DATA_IN;
                 }else{
                     USBD_TASKS_EP0STALL = 1;
                 }
@@ -289,10 +316,39 @@ void USBD_IRQHandler(void){
                 USBD_TASKS_EP0STALL = 1;
         }
     }
+    if(USBD_EVENTS_EP0DATADONE){
+        USBD_EVENTS_EP0DATADONE = 0;
+        if(control_machine.state == CONTROL_DATA_IN){
+            control_machine.ep0_busy = 0;
+            if(control_machine.remaining == 0){
+                USBD_TASKS_EP0STATUS = 1;
+                control_machine.state = CONTROL_IDLE;
+            }
+        } else if(control_machine.state == CONTROL_DATA_OUT){
+            control_machine.out_ready = 1;
+        }
+    }
+    if(USBD_EVENTS_ENDEPIN_N(0)){
+        USBD_EVENTS_ENDEPIN_N(0) = 0;
+        dma_busy = 0;
+    }
+    if(USBD_EVENTS_ENDEPOUT_N(0)){
+        USBD_EVENTS_ENDEPOUT_N(0) = 0;
+        dma_busy = 0;
+        control_machine.out_armed = 0;
+        uint32_t rcv = USBD_EPOUT_AMOUNT_N(0);
+        control_machine.ptr += rcv;
+        control_machine.remaining -= rcv;
+        if(control_machine.remaining == 0){
+            USBD_TASKS_EP0STATUS = 1;
+            control_machine.state = CONTROL_IDLE;
+        }
+    }
     // Data has been sent, consume in the ring
     if(USBD_EVENTS_ENDEPIN_N(1)){
-        ring_consume(&usb_ring, sending_length);
         USBD_EVENTS_ENDEPIN_N(1) = 0;
+        ring_consume(&usb_ring, sending_length);
+        dma_busy = 0;
     }
     // Data has been ACK's, we can send again
     if(USBD_EVENTS_EPDATA){
@@ -303,7 +359,7 @@ void USBD_IRQHandler(void){
             op_pending = 0;
         }
     }
-    usb_tx_start();
+    dma_schedule();
 }
 
 void usb_init(){
@@ -350,7 +406,11 @@ void usb_init(){
     USBD_INTENSET = USBD_INT_EP0SETUP_MSK;
     USBD_INTENSET = USBD_INT_EP0DATADONE_MSK;
     USBD_INTENSET = USBD_INT_ENDEPIN_1_MSK;
+    USBD_INTENSET = USBD_INT_ENDEPOUT_1_MSK;
+    USBD_INTENSET = USBD_INT_ENDEPIN_0_MSK;
+    USBD_INTENSET = USBD_INT_ENDEPOUT_0_MSK;
     USBD_INTENSET = USBD_INT_EPDATA_MSK;
+    USBD_INTENSET = USBD_INT_USBRESET_MSK;
     NVIC_ISER1 |= (1UL<<7);
     // Set lower pripority than RADIO
     NVIC_IPR_N(39) = (1UL<<5);

@@ -86,6 +86,22 @@
 #define USBD_EVENTCAUSE_USBWUALLOWED 1<<10
 #define USBD_EVENTCAUSE_READY        1<<11
 
+typedef enum{
+    CONTROL_IDLE,
+    CONTROL_DATA_IN,
+    CONTROL_DATA_OUT,
+} usb_control_state_t;
+
+typedef struct{
+    usb_control_state_t state;
+    uint8_t *ptr;
+    uint32_t remaining;
+    int ep0_busy;
+    int out_ready;
+    int out_armed;
+} usb_control_machine_t;
+
+
 void usb_init();
 void usb_write(const uint8_t *buf, int len);
 void usb_poll();
