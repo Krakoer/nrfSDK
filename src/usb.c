@@ -136,6 +136,9 @@ static const char lineCoding[] = {
 static ring_buff_t usb_ring;
 static uint8_t usb_ring_buf[USB_RING_SIZE] = {0};
 
+static uint32_t op_pending = 0;
+static uint32_t sending_length = 0;
+
 static char serial_confbuf[7] = {0};
 static char usb_buffer[64] = { 0 };
 static volatile int dtr_latch = 0;
@@ -195,38 +198,26 @@ static uint32_t usb_read_control_data(char *outbuf, uint32_t buflen, uint32_t wL
 void usb_write(const uint8_t *buf, int length){
     if(dtr_latch){
         ring_write(&usb_ring, buf, length);
+        // Trigger an USB interrupt
+        NVIC_ISPR1 = (1UL<<7);
     }
 }
 
-void usb_poll(){
+void usb_tx_start(){
     uint32_t length = 0;
     void *data_ptr = 0;
-    while(dtr_latch) {
+    if(dtr_latch && !op_pending) {
         // Peek the ring
         ring_peek(&usb_ring, &data_ptr, &length);
-        if(!length){
-            break;
-        }
+        if(length){
+            USBD_EPIN_PTR_N(1) = (unsigned long)data_ptr;
+            sending_length = MIN(length, 0x40);
+            USBD_EPIN_MAXCNT_N(1) = sending_length;
 
-        USBD_EPIN_PTR_N(1) = (unsigned long)data_ptr;
-        uint32_t to_send = MIN(length, 0x40);
-        USBD_EPIN_MAXCNT_N(1) = to_send;
-
-        USBD_TASKS_STARTEPIN_N(1) = 1;
-        while(dtr_latch){
-            if(USBD_EVENTS_ENDEPIN_N(1) == 1){
-                // Bytes has been sent, advance the ring
-                ring_consume(&usb_ring, to_send);
-                USBD_EVENTS_ENDEPIN_N(1) = 0;
-            }
-            // If the device is disconnected while we wait, we will never receive the event and be stuck forever... :/
-            if(((USBD_EPDATASTATUS & (1<<1)) != 0)){
-                // W1C register
-                USBD_EPDATASTATUS = (1<<1);
-                break;
-            }
+            USBD_TASKS_STARTEPIN_N(1) = 1;
+            op_pending = 1;
         }
-    };
+    }
 }
 
 void USBD_IRQHandler(void){
@@ -298,6 +289,21 @@ void USBD_IRQHandler(void){
                 USBD_TASKS_EP0STALL = 1;
         }
     }
+    // Data has been sent, consume in the ring
+    if(USBD_EVENTS_ENDEPIN_N(1)){
+        ring_consume(&usb_ring, sending_length);
+        USBD_EVENTS_ENDEPIN_N(1) = 0;
+    }
+    // Data has been ACK's, we can send again
+    if(USBD_EVENTS_EPDATA){
+        USBD_EVENTS_EPDATA = 0;
+        if(((USBD_EPDATASTATUS & (1<<1)) != 0)){
+            // W1C register
+            USBD_EPDATASTATUS = (1<<1);
+            op_pending = 0;
+        }
+    }
+    usb_tx_start();
 }
 
 void usb_init(){
@@ -343,6 +349,8 @@ void usb_init(){
     // Enable USB interupts
     USBD_INTENSET = USBD_INT_EP0SETUP_MSK;
     USBD_INTENSET = USBD_INT_EP0DATADONE_MSK;
+    USBD_INTENSET = USBD_INT_ENDEPIN_1_MSK;
+    USBD_INTENSET = USBD_INT_EPDATA_MSK;
     NVIC_ISER1 |= (1UL<<7);
     // Set lower pripority than RADIO
     NVIC_IPR_N(39) = (1UL<<5);
