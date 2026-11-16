@@ -13,9 +13,11 @@
 #define USBD_EVENTS_ENDEPOUT_N(n)   (*(volatile unsigned long *)(USBD_BASE + 0x130 + 4UL*(n)))
 #define USBD_EVENTS_EP0SETUP        (*(volatile unsigned long *)(USBD_BASE + 0x15C))
 #define USBD_EVENTS_USBEVENT        (*(volatile unsigned long *)(USBD_BASE + 0x158))
+#define USBD_EVENTS_EPDATA          (*(volatile unsigned long *)(USBD_BASE + 0x160))
 #define USBD_SHORTS                 (*(volatile unsigned long *)(USBD_BASE + 0x200))
 #define USBD_INTENSET               (*(volatile unsigned long *)(USBD_BASE + 0x304))
 #define USBD_EVENTCAUSE             (*(volatile unsigned long *)(USBD_BASE + 0x400))
+#define USBD_EPDATASTATUS           (*(volatile unsigned long *)(USBD_BASE + 0x46C))
 #define USBD_USBADDR                (*(volatile unsigned long *)(USBD_BASE + 0x470))
 #define USBD_BMREQUESTTYPE          (*(volatile unsigned long *)(USBD_BASE + 0x480)) // SETUP data, byte 0, bmRequestType
 #define USBD_BREQUEST               (*(volatile unsigned long *)(USBD_BASE + 0x484)) // SETUP data, byte 1, bRequest
@@ -82,3 +84,4 @@
 #define USBD_EVENTCAUSE_READY        1<<11
 
 void usb_init();
+void usb_write(const char *buf, int len);

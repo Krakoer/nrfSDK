@@ -131,7 +131,9 @@ static const char lineCoding[] = {
     0x08,
 };
 
+static char serial_confbuf[7] = {0};
 static char usb_buffer[64] = { 0 };
+static volatile int dtr_latch = 0;
 
 static void usb_send_control_data(const char *data, int length) {
     uint32_t tosend = 0;
@@ -157,15 +159,15 @@ static int usb_read_control_data(char *outbuf, int buflen, int wLength){
     uint32_t received_total = 0;
     uint32_t rcv = 0;
     USBD_EPOUT_PTR_N(0) = (unsigned long)usb_buffer;
-    USBD_EPOUT_MAXCNT_N(0) = MIN(buflen, wLength);
     
     USBD_TASKS_EP0RCVOUT = 1;
     while(1) {
+        USBD_EPOUT_MAXCNT_N(0) = MIN(buflen-received_total, wLength);
         while(USBD_EVENTS_EP0DATADONE == 0) { }
         USBD_EVENTS_EP0DATADONE = 0;
         while(USBD_EVENTS_ENDEPOUT_N(0) == 0) { }
         USBD_EVENTS_ENDEPOUT_N(0) = 0;
-        rcv = USBD_EPIN_AMOUNT_N(0);
+        rcv = USBD_EPOUT_AMOUNT_N(0);
         for (uint32_t i = 0; i < rcv; i ++) {
             *outbuf++ = usb_buffer[i];
         }
@@ -175,6 +177,37 @@ static int usb_read_control_data(char *outbuf, int buflen, int wLength){
         }
     }
     USBD_TASKS_EP0STATUS = 1;
+    return received_total;
+}
+
+void usb_write(const char *buf, int length){
+    if(!dtr_latch){
+        return;
+    }
+    uint32_t tosend = 0;
+    USBD_EPIN_PTR_N(1) = (unsigned long)usb_buffer;
+    
+    do {
+        tosend = MIN(length, 0x40);
+        length -= tosend;
+        USBD_EPIN_MAXCNT_N(1) = tosend;
+
+        for (uint32_t i = 0; i < tosend; i ++) {
+            usb_buffer[i] = *buf++;
+        }
+
+        USBD_TASKS_STARTEPIN_N(1) = 1;
+        while(1){
+            // If the device is disconnected while we wait, we will never receive the event and be stuck forever... :/
+            while(USBD_EVENTS_EPDATA == 0) { if(!dtr_latch) break; }
+            USBD_EVENTS_EPDATA = 0;
+            if((USBD_EPDATASTATUS & (1<<1)) != 0){
+                // W1C register
+                USBD_EPDATASTATUS = (1<<1);
+                break;
+            }
+        }
+    } while(length);
 }
 
 void USBD_IRQHandler(void){
@@ -182,7 +215,6 @@ void USBD_IRQHandler(void){
     uint8_t bRequest = 0;
     uint32_t wLength = 0;
     uint32_t wValue = 0;
-    char serial_confbuf[7] = {0};
 
     if(USBD_EVENTS_EP0SETUP == 1) {
         USBD_EVENTS_EP0SETUP = 0;
@@ -229,6 +261,7 @@ void USBD_IRQHandler(void){
             // SET_CONTROL_LINE_STATE
             case 0x22:
                 if(bmRequestType == 0x21){
+                    dtr_latch = wValue&1;
                     USBD_TASKS_EP0STATUS = 1;
                 }else{
                     USBD_TASKS_EP0STALL = 1;
