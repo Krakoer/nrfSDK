@@ -15,3 +15,4 @@ static inline void __set_PRIMASK(uint32_t priMask)
 }
 
 #define __WFI()                             __asm__ volatile ("wfi")
+#define __DMB()                             __asm__ volatile ("dmb" ::: "memory")

@@ -1,5 +1,6 @@
 #include "usb.h"
 #include "power.h"
+#include "util.h"
 #include "nvic.h"
 #include "string.h"
 #include <stdint.h>
@@ -7,8 +8,6 @@
 #define STR_LANGUAGE_CODES 0x00
 #define STR_MANUFACTURER   0x00
 #define STR_PRODUCT        0x00
-
-#define MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
 
 static const char devDescriptor[] = {
 	0x12,      // bLength
