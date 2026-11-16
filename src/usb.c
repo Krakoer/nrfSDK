@@ -3,7 +3,10 @@
 #include "util.h"
 #include "nvic.h"
 #include "string.h"
+#include "ring.h"
 #include <stdint.h>
+
+#define USB_RING_SIZE       (1UL<<11)
 
 #define STR_LANGUAGE_CODES 0x00
 #define STR_MANUFACTURER   0x00
@@ -130,6 +133,9 @@ static const char lineCoding[] = {
     0x08,
 };
 
+static ring_buff_t usb_ring;
+static uint8_t usb_ring_buf[USB_RING_SIZE] = {0};
+
 static char serial_confbuf[7] = {0};
 static char usb_buffer[64] = { 0 };
 static volatile int dtr_latch = 0;
@@ -186,24 +192,33 @@ static uint32_t usb_read_control_data(char *outbuf, uint32_t buflen, uint32_t wL
     return received_total;
 }
 
-void usb_write(const char *buf, int length){
-    if(!dtr_latch){
-        return;
+void usb_write(const uint8_t *buf, int length){
+    if(dtr_latch){
+        ring_write(&usb_ring, buf, length);
     }
-    uint32_t tosend = 0;
-    USBD_EPIN_PTR_N(1) = (unsigned long)usb_buffer;
-    
-    do {
-        tosend = MIN(length, 0x40);
-        length -= tosend;
-        USBD_EPIN_MAXCNT_N(1) = tosend;
+}
 
-        for (uint32_t i = 0; i < tosend; i ++) {
-            usb_buffer[i] = *buf++;
+void usb_poll(){
+    uint32_t length = 0;
+    void *data_ptr = 0;
+    while(dtr_latch) {
+        // Peek the ring
+        ring_peek(&usb_ring, &data_ptr, &length);
+        if(!length){
+            break;
         }
+
+        USBD_EPIN_PTR_N(1) = (unsigned long)data_ptr;
+        uint32_t to_send = MIN(length, 0x40);
+        USBD_EPIN_MAXCNT_N(1) = to_send;
 
         USBD_TASKS_STARTEPIN_N(1) = 1;
         while(dtr_latch){
+            if(USBD_EVENTS_ENDEPIN_N(1) == 1){
+                // Bytes has been sent, advance the ring
+                ring_consume(&usb_ring, to_send);
+                USBD_EVENTS_ENDEPIN_N(1) = 0;
+            }
             // If the device is disconnected while we wait, we will never receive the event and be stuck forever... :/
             if(((USBD_EPDATASTATUS & (1<<1)) != 0)){
                 // W1C register
@@ -211,7 +226,7 @@ void usb_write(const char *buf, int length){
                 break;
             }
         }
-    } while(length && dtr_latch);
+    };
 }
 
 void USBD_IRQHandler(void){
@@ -331,4 +346,7 @@ void usb_init(){
     NVIC_ISER1 |= (1UL<<7);
     // Set lower pripority than RADIO
     NVIC_IPR_N(39) = (1UL<<5);
+
+    // Init the ring buffer
+    ring_init(&usb_ring, usb_ring_buf, USB_RING_SIZE);
 }

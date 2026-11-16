@@ -46,7 +46,7 @@ uint32_t ring_free(ring_buff_t *r){
 
 void ring_peek(ring_buff_t *r, void **ptr, uint32_t *len){
     uint32_t contig_data_available = MIN(r->head-r->tail, r->size-(r->tail&r->mask));
-    *ptr = &r->buffer[r->tail&r->mask];
+    *ptr = (long unsigned int *)&r->buffer[r->tail&r->mask];
     *len = contig_data_available;
 }
 

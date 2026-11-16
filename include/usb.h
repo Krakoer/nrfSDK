@@ -1,5 +1,7 @@
 #pragma once
 
+#include <stdint.h>
+
 #define USBD_BASE 0x40027000
 
 #define USBD_TASKS_STARTEPIN_N(n)   (*(volatile unsigned long *)(USBD_BASE + 0x004 + 0x4UL*(n)))
@@ -9,6 +11,7 @@
 #define USBD_TASKS_EP0STATUS        (*(volatile unsigned long *)(USBD_BASE + 0x050))
 #define USBD_TASKS_EP0STALL         (*(volatile unsigned long *)(USBD_BASE + 0x054))
 #define USBD_EVENTS_USBRESET        (*(volatile unsigned long *)(USBD_BASE + 0x100))
+#define USBD_EVENTS_ENDEPIN_N(n)    (*(volatile unsigned long *)(USBD_BASE + 0x108 + 4UL*(n)))
 #define USBD_EVENTS_EP0DATADONE     (*(volatile unsigned long *)(USBD_BASE + 0x128))
 #define USBD_EVENTS_ENDEPOUT_N(n)   (*(volatile unsigned long *)(USBD_BASE + 0x130 + 4UL*(n)))
 #define USBD_EVENTS_EP0SETUP        (*(volatile unsigned long *)(USBD_BASE + 0x15C))
@@ -84,4 +87,5 @@
 #define USBD_EVENTCAUSE_READY        1<<11
 
 void usb_init();
-void usb_write(const char *buf, int len);
+void usb_write(const uint8_t *buf, int len);
+void usb_poll();
