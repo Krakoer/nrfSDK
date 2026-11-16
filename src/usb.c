@@ -330,4 +330,6 @@ void usb_init(){
     USBD_INTENSET = USBD_INT_EP0SETUP_MSK;
     USBD_INTENSET = USBD_INT_EP0DATADONE_MSK;
     NVIC_ISER1 |= (1UL<<7);
+    // Set lower pripority than RADIO
+    NVIC_IPR_N(39) = (1UL<<5);
 }
