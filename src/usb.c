@@ -5,8 +5,8 @@
 #include <stdint.h>
 
 #define STR_LANGUAGE_CODES 0x00
-#define STR_MANUFACTURER   0x01
-#define STR_PRODUCT        0x02
+#define STR_MANUFACTURER   0x00
+#define STR_PRODUCT        0x00
 
 #define MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
 
@@ -159,10 +159,13 @@ static int usb_read_control_data(char *outbuf, int buflen, int wLength){
     uint32_t received_total = 0;
     uint32_t rcv = 0;
     USBD_EPOUT_PTR_N(0) = (unsigned long)usb_buffer;
+
+    // Enable useful shorts
+    USBD_SHORTS |= (1<<1 | 1<<4); // EP0DATADONE_STARTEPOUT0 | ENDEPOUT0_EP0RCVOUT
     
     USBD_TASKS_EP0RCVOUT = 1;
     while(1) {
-        USBD_EPOUT_MAXCNT_N(0) = MIN(buflen-received_total, wLength);
+        USBD_EPOUT_MAXCNT_N(0) = MIN(MIN(sizeof(usb_buffer)-received_total, buflen-received_total), wLength-received_total);
         while(USBD_EVENTS_EP0DATADONE == 0) { }
         USBD_EVENTS_EP0DATADONE = 0;
         while(USBD_EVENTS_ENDEPOUT_N(0) == 0) { }
@@ -177,6 +180,10 @@ static int usb_read_control_data(char *outbuf, int buflen, int wLength){
         }
     }
     USBD_TASKS_EP0STATUS = 1;
+
+    // Disable the shorts
+    USBD_SHORTS &= ~(1<<1 | 1<<4); // EP0DATADONE_STARTEPOUT0 | ENDEPOUT0_EP0RCVOUT
+
     return received_total;
 }
 
@@ -325,7 +332,4 @@ void usb_init(){
     USBD_INTENSET = USBD_INT_EP0SETUP_MSK;
     USBD_INTENSET = USBD_INT_EP0DATADONE_MSK;
     NVIC_ISER1 |= (1UL<<7);
-
-    // Enable useful shorts
-    USBD_SHORTS |= (1<<1 | 1<<4); // EP0DATADONE_STARTEPOUT0 | ENDEPOUT0_EP0RCVOUT
 }
