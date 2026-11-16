@@ -155,7 +155,7 @@ static void usb_send_control_data(const char *data, int length) {
     USBD_TASKS_EP0STATUS = 1;
 }
 
-static int usb_read_control_data(char *outbuf, int buflen, int wLength){
+static uint32_t usb_read_control_data(char *outbuf, uint32_t buflen, uint32_t wLength){
     uint32_t received_total = 0;
     uint32_t rcv = 0;
     USBD_EPOUT_PTR_N(0) = (unsigned long)usb_buffer;
@@ -165,7 +165,7 @@ static int usb_read_control_data(char *outbuf, int buflen, int wLength){
     
     USBD_TASKS_EP0RCVOUT = 1;
     while(1) {
-        USBD_EPOUT_MAXCNT_N(0) = MIN(MIN(sizeof(usb_buffer)-received_total, buflen-received_total), wLength-received_total);
+        USBD_EPOUT_MAXCNT_N(0) = MIN(MIN(sizeof(usb_buffer), buflen-received_total), wLength-received_total);
         while(USBD_EVENTS_EP0DATADONE == 0) { }
         USBD_EVENTS_EP0DATADONE = 0;
         while(USBD_EVENTS_ENDEPOUT_N(0) == 0) { }
@@ -204,17 +204,15 @@ void usb_write(const char *buf, int length){
         }
 
         USBD_TASKS_STARTEPIN_N(1) = 1;
-        while(1){
+        while(dtr_latch){
             // If the device is disconnected while we wait, we will never receive the event and be stuck forever... :/
-            while(USBD_EVENTS_EPDATA == 0) { if(!dtr_latch) break; }
-            USBD_EVENTS_EPDATA = 0;
-            if((USBD_EPDATASTATUS & (1<<1)) != 0){
+            if(((USBD_EPDATASTATUS & (1<<1)) != 0)){
                 // W1C register
                 USBD_EPDATASTATUS = (1<<1);
                 break;
             }
         }
-    } while(length);
+    } while(length && dtr_latch);
 }
 
 void USBD_IRQHandler(void){
