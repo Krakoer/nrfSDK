@@ -102,6 +102,14 @@ void radio_configure(const radio_config_t *cfg){
     timer_cc = cfg->timer_cc;
 }
 
+void radio_set_frequency(unsigned freq){
+    RADIO_FREQUENCY = freq;
+}
+
+void radio_set_datawhiteiv(unsigned iv){
+    RADIO_DATAWHITEIV = iv;
+}
+
 void radio_enable_rx(){
     RADIO_PACKET_PTR = (long unsigned int)radio_buf1;
 

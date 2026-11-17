@@ -187,3 +187,5 @@ int radio_packet_ready();
 void radio_slot_available();
 unsigned radio_get_dropped_count();
 unsigned radio_get_received_count();
+void radio_set_frequency(unsigned freq);
+void radio_set_datawhiteiv(unsigned iv);

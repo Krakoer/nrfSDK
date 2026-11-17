@@ -201,7 +201,7 @@ void usb_println(const char *str){
 
 static void usb_send_control_data() {
     USBD_EPIN_PTR_N(0) = (unsigned long)usb_control_buffer;
-    int sending = MIN(control_machine.remaining, 0x40);
+    unsigned sending = MIN(control_machine.remaining, 0x40);
     USBD_EPIN_MAXCNT_N(0) = sending;
     
     // For sending data, stage it in a RAM buffer so easyDMA can access it.
