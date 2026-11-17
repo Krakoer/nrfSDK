@@ -177,7 +177,7 @@ void usb_hex_dump(const uint8_t *buf, unsigned len){
     unsigned int total = 0;
 
     while(1) {
-        taken = hexdump(&buf[total], len-total, formatted, 256, &written);
+        taken = hexdump(&buf[total], len-total, formatted, 256, &written, total);
         if(!taken) {
             break;
         }

@@ -63,9 +63,10 @@ int strlen(const char *str){
 }
 
 /// Returns input bytes consumed, set out_written to the number of bytes written to the output buffer.
-unsigned int hexdump(const uint8_t *buf, unsigned len, uint8_t *out_buf, unsigned outbuf_len, unsigned *out_written){
+unsigned int hexdump(const uint8_t *buf, unsigned len, uint8_t *out_buf, unsigned outbuf_len, unsigned *out_written, int base_offset){
     char line[HEXDUMP_LINE] = {0};
     int written = 0;
+    *out_written = 0;
 
     for(unsigned int off = 0; off < len; off+=HEXDUMP_COL) {
         // Number of byte to print in this line
@@ -76,8 +77,8 @@ unsigned int hexdump(const uint8_t *buf, unsigned len, uint8_t *out_buf, unsigne
             return off;
         }
         // Offset: '00EF: '
-        hex8(line, (off >> 8) & 0xFF);
-        hex8(&line[2], off & 0xFF);
+        hex8(line, ((off+base_offset) >> 8) & 0xFF);
+        hex8(&line[2], (off+base_offset) & 0xFF);
         line[4] = ':';
         line[5] = ' ';
 
