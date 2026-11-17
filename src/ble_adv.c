@@ -59,13 +59,14 @@ ble_parsing_error_t parse_adv_ble_packet(const uint8_t *data, unsigned len, ble_
     return BLE_ADV_OK;
 }
 
+/// Build an ADV packet to data.
 ble_parsing_error_t ble_adv_to_raw(uint8_t *data, unsigned len, ble_adv_packet_t *ble){
     // Buffer length should be at least length of ADV data + 6 bytes of MAC address + 2 bytes of header.
     if(len < ble->adv_len + 8) {
         return BLE_ADV_INVALID_LEN;
     }
 
-    data[0] |= ble->header.adv_type;
+    data[0] = ble->header.adv_type;
     data[0] |= ble->header.rx_add << 7;
     data[0] |= ble->header.tx_add << 6;
     // Length is length of adv data + 6 bytes of addr
@@ -80,5 +81,26 @@ ble_parsing_error_t ble_adv_to_raw(uint8_t *data, unsigned len, ble_adv_packet_t
         data[8+i] = ble->adv_data[i];
     }
 
+    return BLE_ADV_OK;
+}
+
+ble_parsing_error_t build_ad_data(ad_item_t *ad_data, unsigned ad_len, uint8_t *out_buf, unsigned out_len, unsigned *bytes_written) {
+    unsigned written = 0;
+    *bytes_written = 0;
+    for(unsigned i = 0; i < ad_len; i++){
+        // If we are about to overflow the buffer, return an error
+        if(written+ad_data->length+2 > out_len){
+            return BLE_ADV_INVALID_LEN;
+        }
+        out_buf[0] = ad_data->length+1;
+        out_buf[1] = ad_data->type;
+        for(int j = 0; j < ad_data->length; j++){
+            out_buf[2+j] = ad_data->value[j];
+        }
+        written += ad_data->length+2;
+        *bytes_written = written;
+        out_buf += ad_data->length+2;
+        ad_data++;
+    }
     return BLE_ADV_OK;
 }
