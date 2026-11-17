@@ -105,3 +105,10 @@ typedef struct{
 void usb_init();
 void usb_write(const uint8_t *buf, int len);
 void usb_poll();
+void usb_print(const char *str);
+void usb_println(const char *str);
+void usb_print_dec(unsigned long val);
+void usb_print_hex(unsigned long val);
+void usb_print_hex8(uint8_t vat);
+void usb_print_hex32(uint32_t vat);
+void usb_hex_dump(const uint8_t *buf, unsigned len);

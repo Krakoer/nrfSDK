@@ -151,6 +151,54 @@ static int dma_busy = 0;
 // Misc
 static volatile int dtr_latch = 0;
 
+void usb_print_hex8(uint8_t val) {
+    char buf[2];
+    hex8(buf, val);
+    usb_write(buf, sizeof buf);
+}
+
+void usb_print_hex32(uint32_t val) {
+    char buf[10];
+    hex32(buf, val);
+    usb_write(buf, 10);
+}
+
+void usb_print_dec(unsigned long v) {
+    char buf[10];
+    unsigned len;
+    char *p = utoa_back(v, buf + sizeof buf, &len);
+    usb_write(p, len);
+}
+
+void usb_hex_dump(const uint8_t *buf, unsigned len){
+    char formatted[256] = {0};
+    unsigned int written = 0;
+    unsigned int taken = 0;
+    unsigned int total = 0;
+
+    while(1) {
+        taken = hexdump(&buf[total], len-total, formatted, 256, &written);
+        if(!taken) {
+            break;
+        }
+        total += taken;
+        usb_write(formatted, written);
+        if(total == len){
+            break;
+        }
+    }
+}
+
+void usb_print(const char *str){
+    usb_write(str, strlen(str));
+}
+
+void usb_println(const char *str){
+    usb_print(str);
+    usb_print("\r\n");
+}
+
+
 static void usb_send_control_data() {
     USBD_EPIN_PTR_N(0) = (unsigned long)usb_control_buffer;
     int sending = MIN(control_machine.remaining, 0x40);

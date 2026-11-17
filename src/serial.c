@@ -1,20 +1,11 @@
 #include "serial.h"
 #include "nrf52_regs.h"
 #include <stdint.h>
-
-#define HEXDUMP_COL  16
-#define HEXDUMP_LINE (6 + 3*HEXDUMP_COL + 2)
-
-static const char hex_digits[] = "0123456789ABCDEF";
+#include "string.h"
 
 #define SERIAL_BUF_SIZE 256
 
 static char serial_buf[SERIAL_BUF_SIZE] = {0};
-
-static inline void hex8(char* out, uint8_t b) {
-    out[0] = hex_digits[(b >> 4) & 0xF];
-    out[1] = hex_digits[b & 0xF];
-}
 
 void serial_print_hex8(uint8_t val) {
     char buf[2];
@@ -23,27 +14,12 @@ void serial_print_hex8(uint8_t val) {
 }
 
 void serial_print_hex32(uint32_t val) {
-    char buf[2 + 8];
-    buf[0] = '0';
-    buf[1] = 'x';
-
-    for(int i = 0; i < 4; i++){
-        hex8(&buf[2+2*i], (val >> 8*(3-i)) & 0xFF);
-    }
-
+    char buf[10];
+    hex32(buf, val);
     serial_write(buf, 10);
 }
 
-static char *utoa_back(unsigned long v, char *end, unsigned *len)
-{
-    char *p = end;
-    do { *--p = (char)('0' + (v % 10UL)); v /= 10UL; } while (v);
-    *len = (unsigned)(end - p);
-    return p;
-}
-
-void serial_print_dec(unsigned long v)
-{
+void serial_print_dec(unsigned long v) {
     char buf[10];
     unsigned len;
     char *p = utoa_back(v, buf + sizeof buf, &len);
@@ -51,39 +27,22 @@ void serial_print_dec(unsigned long v)
 }
 
 void serial_hex_dump(const uint8_t *buf, unsigned len){
-    char line[HEXDUMP_LINE] = {0};
+    char formatted[SERIAL_BUF_SIZE] = {0};
+    unsigned int written = 0;
+    unsigned int taken = 0;
+    unsigned int total = 0;
 
-    for(unsigned int off = 0; off < len; off+=HEXDUMP_COL) {
-        // Number of byte to print in this line
-        int n = len-off;
-        if(n > HEXDUMP_COL) n = HEXDUMP_COL;
-        
-        // Offset: '00EF: '
-        hex8(line, (off >> 16) & 0xFF);
-        hex8(&line[2], off & 0xFF);
-        line[4] = ':';
-        line[5] = ' ';
-
-
-        for(int i = 0; i < n; i++){
-            hex8(&line[6+i*3], buf[off+i]);
-            line[6+i*3+2] = ' ';
+    while(1) {
+        taken = hexdump(&buf[total], len-total, formatted, SERIAL_BUF_SIZE, &written);
+        if(!taken) {
+            break;
         }
-
-        line[6+n*3] = '\r';
-        line[6+n*3+1] = '\n';
-        serial_write(line, 6+n*3+2);
+        total += taken;
+        serial_write(formatted, written);
+        if(total == len){
+            break;
+        }
     }
-}
-
-int strlen(const char *str){
-    const char *p;
-    if (str == 0)
-        return 0;
-    p = str;
-    while (*p != '\0')  
-        p++; 
-    return p - str;
 }
 
 void serial_init(gpio_pin_t tx, gpio_pin_t rx, unsigned long baud){
